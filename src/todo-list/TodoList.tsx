@@ -1,27 +1,28 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import uniqid from "uniqid";
-import BottomNav from "../shared/BottomNav";
-import * as UI from "../shared/ui";
+import PubSub from 'pubsub-js'
+import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
+import uniqid from 'uniqid'
+import BottomNav from '../shared/BottomNav'
+import * as UI from '../shared/ui'
 
 /**
  * Définie la forme d'un objet Todo
  */
 export type Todo = {
-  id: string;
-  label: string;
-  done: boolean;
-};
+  id: string
+  label: string
+  done: boolean
+}
 
 /**
  * Définie ce qu'est une « task »
  */
-export type Task = string;
+export type Task = string
 
 /**
  * Définie ce qu'est une list de « task »
  */
-export type TaskList = Array<Todo>;
+export type TaskList = Array<Todo>
 
 /**
  * Ce fichier contient le composant de l'écran
@@ -57,20 +58,40 @@ export type TaskList = Array<Todo>;
  *    un « filter » sur la « taskList »)
  */
 export default function TodoList() {
-  const [task, setTask] = useState<Task>("");
-  const [taskList, setTaskList] = useState<TaskList>([]);
+  const [username, setUsername] = useState<string>('')
+  const [task, setTask] = useState<Task>('')
+  const [taskList, setTaskList] = useState<TaskList>([])
+
+  useEffect(() => {
+    const storeUser = localStorage.getItem('user')
+
+    if (storeUser) {
+      setUsername(JSON.parse(storeUser).displayName)
+    }
+  }, [])
+
+  useEffect(() => {
+    console.log('Souscription au topic "changeUsername"')
+
+    const onUsernameChange = (topic: string, newUsername: string) => {
+      console.log('récéption du username : ' + newUsername)
+      setUsername(newUsername)
+    }
+
+    PubSub.subscribe('changeUsername', onUsernameChange)
+  }, [])
 
   // onTaskChange :: (React.SyntheticEvent) -> void
   const onTaskChange = (event: React.SyntheticEvent<HTMLInputElement>) => {
-    setTask(event.currentTarget.value);
-  };
+    setTask(event.currentTarget.value)
+  }
 
   // addTaskToList :: () -> void
   const addTaskToList = () => {
     // Si je n'ai pas de tache (si « task » est vide)
     if (!task) {
       // On arrète la fonction ici !
-      return;
+      return
     }
 
     // Création d'un objet Todo à rajouter dans
@@ -80,17 +101,17 @@ export default function TodoList() {
       id: uniqid(),
       done: false,
       label: task,
-    };
+    }
 
     // Création d'une nouvelle liste avec tout les éléments
     // de la liste dèja existant plus notre todo au tout début
     // de la liste
-    const newList: TaskList = [todo, ...taskList];
+    const newList: TaskList = [todo, ...taskList]
 
     // On met à jour notre liste, React vas donc ré-afficher nos
     // composants à l'écran
-    setTaskList(newList);
-  };
+    setTaskList(newList)
+  }
 
   // toggleTodo :: Todo -> React.SyntheticEvent -> Void
   // onClick :: React.SyntheticEvent -> Void
@@ -112,7 +133,7 @@ export default function TodoList() {
   const toggleTodo = (todo: Todo) => () => {
     // On boucle sur toute la liste de todo graçe à un map.
     // On enregistre la nouvelle liste dans une variables :
-    const newList: TaskList = taskList.map((t) => {
+    const newList: TaskList = taskList.map(t => {
       // Ici t contiendra successivement tout les todos
       // de ma liste
 
@@ -123,29 +144,29 @@ export default function TodoList() {
         return {
           ...t,
           done: !t.done,
-        };
+        }
       } else {
-        return t;
+        return t
       }
-    });
+    })
 
     // Mise à jour de l'état
-    setTaskList(newList);
-  };
+    setTaskList(newList)
+  }
 
   const removeTodo = (todo: Todo) => (e: React.SyntheticEvent<HTMLElement>) => {
-    e.stopPropagation();
+    e.stopPropagation()
 
-    const newList: TaskList = taskList.filter((t) => {
+    const newList: TaskList = taskList.filter(t => {
       if (t.id === todo.id) {
-        return false;
+        return false
       }
 
-      return true;
-    });
+      return true
+    })
 
-    setTaskList(newList);
-  };
+    setTaskList(newList)
+  }
 
   return (
     <UI.AppContainer>
@@ -161,7 +182,7 @@ export default function TodoList() {
           <UI.TagIcon className="fa-solid fa-user"></UI.TagIcon>
           <UI.TagLabelContainer>
             <UI.TagLabelEntitled>Par</UI.TagLabelEntitled>
-            <UI.TagLabel>John</UI.TagLabel>
+            <UI.TagLabel>{username}</UI.TagLabel>
           </UI.TagLabelContainer>
         </UI.Tag>
       </UI.CenteredFlexContainer>
@@ -178,7 +199,7 @@ export default function TodoList() {
 
       <UI.TodoListContainer>
         {taskList.length > 0 ? (
-          taskList.map((todo) => (
+          taskList.map(todo => (
             <UI.Todo
               key={`todo-${todo.id}`}
               done={todo.done}
@@ -195,7 +216,18 @@ export default function TodoList() {
           <p>Vous n'avez pas encore de taches</p>
         )}
       </UI.TodoListContainer>
-      <BottomNav />
+      <BottomNav
+        topBar={
+          <UI.BottomNavAction>
+            <UI.BottomNavShare>
+              <i className="fa-solid fa-share"></i>
+            </UI.BottomNavShare>
+            <UI.BottomNavDelete>
+              <i className="fa-solid fa-trash"></i>
+            </UI.BottomNavDelete>
+          </UI.BottomNavAction>
+        }
+      />
     </UI.AppContainer>
-  );
+  )
 }
